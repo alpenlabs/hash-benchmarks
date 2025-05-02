@@ -5,6 +5,7 @@ use criterion::{criterion_main, criterion_group, Criterion, BenchmarkId};
 use rand_chacha::ChaCha12Rng;
 use rand::{RngCore, SeedableRng};
 use sha2::{Sha256, Digest};
+use sha3::Sha3_256;
 
 // This defines the input sizes (in bytes) to benchmark
 const BYTES: &[usize] = &[64, 128, 1024];
@@ -89,5 +90,24 @@ fn sha256_bitcoin(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, blake2s, blake3, sha256_rustcrypto, sha256_bitcoin);
+// SHA3 with 256-bit output
+fn sha3(c: &mut Criterion) {
+    let mut rng = ChaCha12Rng::from_seed(SEED);
+    
+    let mut group = c.benchmark_group("SHA3");
+    for bytes in BYTES {
+        group.bench_with_input(BenchmarkId::from_parameter(bytes), bytes, |b, bytes| {
+            // Set up input data
+            let mut input = vec![0u8; *bytes];
+            rng.fill_bytes(&mut input);
+            
+            // Hash
+            b.iter(|| {
+                Sha3_256::digest(&input);
+            });
+        });
+    }
+}
+
+criterion_group!(benches, blake2s, blake3, sha256_rustcrypto, sha256_bitcoin, sha3);
 criterion_main!(benches);
